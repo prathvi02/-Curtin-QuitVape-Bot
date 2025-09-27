@@ -44,7 +44,7 @@ def inject_styles():
       :root {{
         --bg:{BG}; --text:{TEXT}; --card:{CARD}; --muted:rgba(255,255,255,.10);
         --primary:{PRIMARY}; --accent:{ACCENT}; --shadow:0 22px 70px rgba(0,0,0,.50);
-        --title-size:28px;
+        --title-size:28px; --yellow:{YELLOW};
       }}
       html, body, [class*="css"] {{ background:var(--bg); color:var(--text); }}
       .main .block-container{{ padding-top:.5rem; padding-bottom:1rem; max-width:1000px; }}
@@ -114,7 +114,6 @@ def inject_styles():
       .cat-stack {{ margin: 14px 0 22px; }}
       .cat-stack{{ --cat-accent: var(--accent); }}
 
-      /* Static info card (left colored border, colored title, subtitle) */
       .cat-card {{
         background: var(--card);
         border: 1px solid rgba(255,255,255,.08);
@@ -130,7 +129,6 @@ def inject_styles():
       }}
       .cat-card .subtitle {{ opacity:.8; font-size:.92rem; }}
 
-      /* Clickable pill button (compact) */
       .cat-btn .stButton {{ width:100%; }}
       .cat-btn .stButton>button,
       .cat-btn [data-testid="stBaseButton-secondary"],
@@ -139,7 +137,7 @@ def inject_styles():
         text-align:center;
         font-weight:850;
         padding:10px 16px;
-        min-height:44px;              /* don't collapse */
+        min-height:44px;
         border-radius:12px;
         background:#171c24;
         border:1px solid rgba(255,255,255,.16);
@@ -156,6 +154,18 @@ def inject_styles():
         outline:0;
         box-shadow:0 0 0 3px color-mix(in srgb, var(--cat-accent), #fff 25%), 0 10px 20px rgba(0,0,0,.28);
       }}
+
+      /* ==================== BIG TIMER & PHASE ==================== */
+      .timer {{
+        font-size: clamp(28px, 7vw, 52px);
+        font-weight: 900;
+        letter-spacing: .5px;
+        color: var(--yellow);
+        text-shadow: 0 0 12px rgba(255,191,105,.35);
+        text-align: center;
+      }}
+      .phase {{ text-align:center; font-weight:800; font-size: clamp(22px, 5vw, 40px); }}
+      .phase-sub {{ text-align:center; opacity:.9; }}
 
       /* End page tweaks */
       .center-wrap {{ display:flex; justify-content:center; }}
@@ -192,7 +202,6 @@ def _init_state():
 _init_state()
 
 # ====================== CONTENT ======================
-# Updated category NAMES per your request
 CATEGORIES: List[Dict] = [
     {"title":"CRAVING TO VAPE", "subtitle":"Tap to see options.", "emoji":"🌊", "color": PRIMARY, "key":"cravings"},
     {"title":"STRESS TURNING TO VAPING", "subtitle":"Tap to see options.", "emoji":"⚡", "color": ACCENT, "key":"stress"},
@@ -201,7 +210,6 @@ CATEGORIES: List[Dict] = [
     {"title":"QUIT SUPPORT AND RESOURCES", "subtitle":"Tap to see options.", "emoji":"🧭", "color": INDIGO, "key":"support"},
 ]
 
-# Keep using your existing questions/flows (mapped mainly to cravings & social here)
 CRAVINGS_QUESTIONS = [
     {"id":"want_to_vape_now","q":"I want to vape right now",
      "a":"Cravings feel intense but usually pass in **2–5 minutes**. Want me to guide you through a **90-second Craving SOS**?",
@@ -395,7 +403,6 @@ def render_category_card(idx: int, cat: Dict):
       </div>
     ''', unsafe_allow_html=True)
 
-    # Clickable pill button (centered label with emoji)
     st.markdown('<div class="cat-btn">', unsafe_allow_html=True)
     if st.button(f'{cat["emoji"]} {cat["title"]}', key=f"cat_btn_{idx}"):
         select_category(idx); _rerun()
@@ -413,7 +420,6 @@ def categories_panel():
     footer_nav("cats")
 
 def _header_for_key(key: str) -> str:
-    # Title shown on the questions/answers pages
     mapping = {
         "cravings": "CRAVING TO VAPE",
         "stress": "STRESS TURNING TO VAPING",
@@ -572,8 +578,9 @@ def cravings_answer_panel():
             phase = ["Inhale ⬆️", "Hold ✋", "Exhale ⬇️", "Hold ✋"][(elapsed % 16) // 4]
             nxt = 4 - (elapsed % 4)
             st.markdown(
-                f"<div style='text-align:center;font-weight:800;font-size:24px;'>{phase}</div>"
-                f"<div style='text-align:center;opacity:.9;'>Next in {nxt}s</div>", unsafe_allow_html=True
+                f"<div class='phase'>{phase}</div>"
+                f"<div class='phase-sub'>Next in {nxt}s</div>",
+                unsafe_allow_html=True
             )
         if st.button("▶️ Start Breathing (90s)", key="start_breath_90"): run_countdown(90, "Box Breathing (90s)", breath_phase)
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
@@ -599,8 +606,9 @@ def cravings_answer_panel():
             phase = ["Inhale ⬆️", "Hold ✋", "Exhale ⬇️", "Hold ✋"][(elapsed % 16) // 4]
             nxt = 4 - (elapsed % 4)
             st.markdown(
-                f"<div style='text-align:center;font-weight:800;font-size:24px;'>{phase}</div>"
-                f"<div style='text-align:center;opacity:.9;'>Next in {nxt}s</div>", unsafe_allow_html=True
+                f"<div class='phase'>{phase}</div>"
+                f"<div class='phase-sub'>Next in {nxt}s</div>",
+                unsafe_allow_html=True
             )
         if st.button("▶️ Start Breathing (60s)", key="start_breath_60"): run_countdown(60, "Breathing (60s)", breath_phase_60)
 
@@ -608,7 +616,6 @@ def cravings_answer_panel():
 
 def stress_or_social_answer_panel():
     top_header()
-    # For this combined screen, show the stress category name (since these qs are about stress/social)
     gradient_title("⚡", "STRESS TURNING TO VAPING / SOCIAL VAPING SITUATIONS")
     q = next((x for x in STRESS_OR_SOCIAL_QUESTIONS if x["id"] == st.session_state.selected_question), None)
     if not q:
@@ -678,7 +685,6 @@ def category_router():
 
     elif key in ("stress", "social"):
         if st.session_state.stage == "in_category":
-            # show stress/social list using same questions for simplicity
             questions_panel("STRESS TURNING TO VAPING / SOCIAL VAPING SITUATIONS", STRESS_OR_SOCIAL_QUESTIONS, "⚡", "social")
         elif st.session_state.stage == "in_answer":
             stress_or_social_answer_panel()
