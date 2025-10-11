@@ -178,7 +178,7 @@ inject_styles()
 # ====================== STATE ======================
 def _init_state():
     ss = st.session_state
-    ss.setdefault("stage", "splash")  # stages: splash -> login -> show_categories -> in_category -> in_answer -> ended
+    ss.setdefault("stage", "splash")  # splash -> login -> show_categories -> in_category -> in_answer -> ended
     ss.setdefault("authenticated", False)
     ss.setdefault("user_email", None)
 
@@ -225,7 +225,7 @@ CRAVINGS_QUESTIONS = [
      "actions":["focus_3m","breath_60","mini_challenge"]},
 ]
 
-STRESS_OR_SOCIAL_QUESTIONS = [
+STRESS_QUESTIONS = [
     {"id":"stress_exams","q":"You vape when you're stressed about exams?",
      "a":"That’s really common. Want a **2-minute stress relief** exercise or a **study break timer**?",
      "actions":["stress_relief_2m","study_break_5m"]},
@@ -235,6 +235,42 @@ STRESS_OR_SOCIAL_QUESTIONS = [
     {"id":"anxious_without_vape","q":"You feel anxious if you don't vape?",
      "a":"Quick grounding helps: **5-4-3-2-1** (see, feel, hear, smell, taste). Want to try it now?",
      "actions":["grounding_54321"]},
+]
+
+SOCIAL_QUESTIONS = [
+    {"id":"friends_all_vape","q":"My friends all vape — how do I say no?",
+     "a":"You can say: ‘I’m cutting down, I’m good.’ Want me to give you more easy refusal lines?",
+     "actions":["more_refusals"]},
+    {"id":"not_weird_at_parties","q":"Is it weird if I don’t vape at parties?",
+     "a":"Not at all! Many students are quitting or never started. Being vape-free is actually admired. Want confidence tips?",
+     "actions":["confidence_tips"]},
+    {"id":"offered_a_vape","q":"What if someone offers me a vape?",
+     "a":"Try: ‘No thanks, I’m taking a break’ or ‘Not tonight.’ Want 3 more polite but firm replies?",
+     "actions":["more_polite_replies"]},
+]
+
+HEALTH_QUESTIONS = [
+    {"id":"safer_than_smoking","q":"Is vaping safer than smoking?",
+     "a":"It may seem safer, but vaping still harms brain development under 25 and can trigger addiction. Want a myth-buster quick read?",
+     "actions":["myth_buster"]},
+    {"id":"memory_focus","q":"Does vaping affect memory or concentration?",
+     "a":"Yes — nicotine can disrupt attention and learning. Want a quick fact sheet?",
+     "actions":["fact_sheet"]},
+    {"id":"long_term_harm","q":"Can vaping cause long-term harm?",
+     "a":"Evidence shows it can impact lungs, mood, and focus. Quitting now reduces risks. Want easy-to-read articles?",
+     "actions":["readable_articles"]},
+]
+
+SUPPORT_QUESTIONS = [
+    {"id":"who_to_talk","q":"Who can you talk to at Curtin?",
+     "a":"Student Wellbeing and Counselling offer vape support. Want their contact links?",
+     "actions":["curtin_links"]},
+    {"id":"cant_cope","q":"What if you feel you can’t cope?",
+     "a":"If it’s overwhelming, you’re not alone. Curtin Counselling and WA Quitline (13 78 48) can help. Want quick access options?",
+     "actions":["connect_help"]},
+    {"id":"anonymous_here","q":"Can you stay anonymous here?",
+     "a":"Yes — no sign-in required. You can also clear history anytime. Want to see privacy options?",
+     "actions":["privacy_options"]},
 ]
 
 # ====================== HELPERS ======================
@@ -293,6 +329,15 @@ def run_countdown(seconds: int, label: str, phase_cb: Optional[Callable[[int,int
     st.success(f"✅ {label} done!")
     st.balloons()
 
+def _show_badges(lines: List[str], icon: str = "💡"):
+    for t in lines:
+        st.markdown(f'<span class="badge">{icon} {t}</span>', unsafe_allow_html=True)
+
+def _reveal_button(flag: str, label: str):
+    if st.button(label, key=f"reveal_{flag}"):
+        st.session_state[flag] = True
+    return st.session_state.get(flag, False)
+
 # ====================== UI PRIMITIVES ======================
 def gradient_title(emoji: str, title: str, subtitle: Optional[str] = None):
     st.markdown(
@@ -305,7 +350,7 @@ def gradient_title(emoji: str, title: str, subtitle: Optional[str] = None):
 
 def top_header():
     st.markdown('<div class="hdr-row">', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([6, 3, 2], vertical_alignment="center")
+    c1, c2, c3 = st.columns([6, 3, 2])
     with c1:
         st.markdown('<div class="hdr-left"><div class="g-title">💜 Curtin QuitVape Bot</div></div>', unsafe_allow_html=True)
     with c2:
@@ -423,7 +468,7 @@ def _header_for_key(key: str) -> str:
     mapping = {
         "cravings": "CRAVING TO VAPE",
         "stress": "STRESS TURNING TO VAPING",
-        "social": "SOCIAL VAPING SITUATIONS",
+        "social": "SOCIAL SITUATIONS",
         "health": "HEALTH RISKS OF VAPING AND AWARENESS",
         "support": "QUIT SUPPORT AND RESOURCES",
     }
@@ -556,7 +601,7 @@ def grounding_54321_panel():
         st.session_state.g_taste == 1):
         st.success("Grounding complete. 🌿")
 
-# ---------- Answers ----------
+# ---------- Answers: Cravings ----------
 def cravings_answer_panel():
     top_header()
     gradient_title("🌊", "CRAVING TO VAPE")
@@ -612,12 +657,22 @@ def cravings_answer_panel():
             )
         if st.button("▶️ Start Breathing (60s)", key="start_breath_60"): run_countdown(60, "Breathing (60s)", breath_phase_60)
 
+    if "mini_challenge" in actions:
+        st.markdown("**🎲 Mini challenge**")
+        if _reveal_button("show_mini_challenge", "💡 Show 3 quick distractions"):
+            _show_badges([
+                "Name 5 purple objects you’ve seen this week.",
+                "Send one kind message to a friend now.",
+                "Tidy one small area for 2 minutes.",
+            ], icon="🎯")
+
     footer_nav("crav_ans", show_questions=True)
 
-def stress_or_social_answer_panel():
+# ---------- Answers: Stress ----------
+def stress_answer_panel():
     top_header()
-    gradient_title("⚡", "STRESS TURNING TO VAPING / SOCIAL VAPING SITUATIONS")
-    q = next((x for x in STRESS_OR_SOCIAL_QUESTIONS if x["id"] == st.session_state.selected_question), None)
+    gradient_title("⚡", "STRESS TURNING TO VAPING")
+    q = next((x for x in STRESS_QUESTIONS if x["id"] == st.session_state.selected_question), None)
     if not q:
         return
     st.markdown(f'<div class="qtxt" style="margin-top:8px;">Q: {q["q"]}</div>', unsafe_allow_html=True)
@@ -643,7 +698,165 @@ def stress_or_social_answer_panel():
         st.markdown("**🌿 5-4-3-2-1 Grounding**")
         grounding_54321_panel()
 
+    footer_nav("stress_ans", show_questions=True)
+
+# ---------- Answers: Social ----------
+def social_answer_panel():
+    top_header()
+    gradient_title("👥", "SOCIAL SITUATIONS")
+    q = next((x for x in SOCIAL_QUESTIONS if x["id"] == st.session_state.selected_question), None)
+    if not q: return
+    st.markdown(f'<div class="qtxt" style="margin-top:8px;">Q: {q["q"]}</div>', unsafe_allow_html=True)
+    st.write(q["a"])
+    actions = q["actions"]
+
+    if "more_refusals" in actions:
+        if _reveal_button("show_more_refusals", "💬 Show easy refusal lines"):
+            _show_badges([
+                "I’m cutting down — I’m good.",
+                "I promised myself a vape-free week.",
+                "No thanks, I’m taking a break.",
+                "I’m driving later — skipping it.",
+                "I’m on a challenge with my mate.",
+            ], icon="🗣️")
+            st.caption("Tip: keep eye contact, say it once, then change topic.")
+
+    if "confidence_tips" in actions:
+        if _reveal_button("show_conf_tips", "💪 Show confidence tips"):
+            _show_badges([
+                "Hold a drink/prop to keep hands busy.",
+                "Stand near fresh air/door to avoid clouds.",
+                "Arrive with a ‘no’ line ready.",
+                "Leave the convo kindly if pressured.",
+            ], icon="✅")
+
+    if "more_polite_replies" in actions:
+        if _reveal_button("show_more_polite", "📝 Show 3 more polite replies"):
+            _show_badges([
+                "Not tonight — early start tomorrow.",
+                "I’m good — trying to cut back.",
+                "I’ve got a sore throat — passing.",
+            ], icon="🙅")
+
     footer_nav("social_ans", show_questions=True)
+
+# ---------- Answers: Health ----------
+def health_answer_panel():
+    top_header()
+    gradient_title("🧠", "HEALTH & AWARENESS")
+    q = next((x for x in HEALTH_QUESTIONS if x["id"] == st.session_state.selected_question), None)
+    if not q: return
+    st.markdown(f'<div class="qtxt" style="margin-top:8px;">Q: {q["q"]}</div>', unsafe_allow_html=True)
+    st.write(q["a"])
+    actions = q["actions"]
+
+    if "myth_buster" in actions:
+        if _reveal_button("show_myths", "📘 Show myth-buster"):
+            st.info("Myth: ‘It’s just water vapour.’\n\nFact: Aerosol can contain nicotine, ultrafine particles, and chemicals.\n\nMyth: ‘It helps me focus.’\n\nFact: Any boost is short-lived; dependence can worsen attention over time.")
+
+    if "fact_sheet" in actions:
+        if _reveal_button("show_factsheet", "🧾 Show quick fact sheet"):
+            _show_badges([
+                "Nicotine changes developing brain circuits (attention/reward).",
+                "Urges usually last minutes; urge-surfing works.",
+                "Stopping improves mood, sleep, and concentration within weeks.",
+            ], icon="📎")
+
+    if "readable_articles" in actions:
+        if _reveal_button("show_readables", "🔗 Show easy-to-read articles"):
+            st.markdown("- Australian student info pages and government health sites are great plain-language starting points.\n- If you want, I can add direct links here next.")
+
+    footer_nav("health_ans", show_questions=True)
+
+# ---------- Answers: Support ----------
+def support_answer_panel():
+    top_header()
+    gradient_title("🧭", "SUPPORT & RESOURCES")
+    q = next((x for x in SUPPORT_QUESTIONS if x["id"] == st.session_state.selected_question), None)
+    if not q: return
+    st.markdown(f'<div class="qtxt" style="margin-top:8px;">Q: {q["q"]}</div>', unsafe_allow_html=True)
+    st.write(q["a"])
+    actions = q["actions"]
+
+    if "curtin_links" in actions:
+        if _reveal_button("show_curtin", "🏫 Show Curtin help options"):
+            _show_badges([
+                "Curtin Student Wellbeing & Counselling — book a consult.",
+                "On-campus support groups / peer services (when available).",
+            ], icon="🎓")
+            st.caption("(Add exact links when you’re ready.)")
+
+    if "connect_help" in actions:
+        if _reveal_button("show_connect", "📞 Quick access options"):
+            _show_badges([
+                "WA Quitline: 13 78 48",
+                "Ask a counsellor about quitting supports.",
+                "Crisis? Use local emergency services.",
+            ], icon="🆘")
+
+    if "privacy_options" in actions:
+        if _reveal_button("show_privacy", "🔒 Show privacy options"):
+            _show_badges([
+                "No sign-in needed for this prototype.",
+                "Use ‘Clear cache/history’ in the app menu.",
+                "Use a nickname and avoid personal identifiers.",
+            ], icon="🔑")
+
+    footer_nav("support_ans", show_questions=True)
+
+# ====================== ROUTER ======================
+def category_router():
+    idx = st.session_state.selected_category
+    if idx is None:
+        return categories_panel()
+    key = CATEGORIES[idx]["key"]
+
+    if key == "cravings":
+        if st.session_state.stage == "in_category":
+            questions_panel("CRAVING TO VAPE", CRAVINGS_QUESTIONS, "🌊", "crav")
+        elif st.session_state.stage == "in_answer":
+            cravings_answer_panel()
+        else:
+            questions_panel("CRAVING TO VAPE", CRAVINGS_QUESTIONS, "🌊", "crav")
+
+    elif key == "stress":
+        if st.session_state.stage == "in_category":
+            questions_panel("STRESS TURNING TO VAPING", STRESS_QUESTIONS, "⚡", "stress")
+        elif st.session_state.stage == "in_answer":
+            stress_answer_panel()
+        else:
+            questions_panel("STRESS TURNING TO VAPING", STRESS_QUESTIONS, "⚡", "stress")
+
+    elif key == "social":
+        if st.session_state.stage == "in_category":
+            questions_panel("SOCIAL SITUATIONS", SOCIAL_QUESTIONS, "👥", "social")
+        elif st.session_state.stage == "in_answer":
+            social_answer_panel()
+        else:
+            questions_panel("SOCIAL SITUATIONS", SOCIAL_QUESTIONS, "👥", "social")
+
+    elif key == "health":
+        if st.session_state.stage == "in_category":
+            questions_panel("HEALTH & AWARENESS", HEALTH_QUESTIONS, "🧠", "health")
+        elif st.session_state.stage == "in_answer":
+            health_answer_panel()
+        else:
+            questions_panel("HEALTH & AWARENESS", HEALTH_QUESTIONS, "🧠", "health")
+
+    elif key == "support":
+        if st.session_state.stage == "in_category":
+            questions_panel("SUPPORT & RESOURCES", SUPPORT_QUESTIONS, "🧭", "support")
+        elif st.session_state.stage == "in_answer":
+            support_answer_panel()
+        else:
+            questions_panel("SUPPORT & RESOURCES", SUPPORT_QUESTIONS, "🧭", "support")
+
+    else:
+        label = _header_for_key(key)
+        top_header()
+        gradient_title("🧭", label, "Content coming soon. Pick another topic or go back.")
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+        footer_nav("comingsoon")
 
 def end_chat_panel():
     top_header()
@@ -667,36 +880,6 @@ def end_chat_panel():
     with c1: st.button("📂 Categories", key="end_cats", on_click=goto_home)
     with c2: st.button("🏠 Home", key="end_home", on_click=goto_home)
     with c3: st.button("🔚 End Chat", key="end_end", on_click=lambda: setattr(st.session_state, "stage", "ended"))
-
-# ====================== ROUTER ======================
-def category_router():
-    idx = st.session_state.selected_category
-    if idx is None:
-        return categories_panel()
-    key = CATEGORIES[idx]["key"]
-
-    if key == "cravings":
-        if st.session_state.stage == "in_category":
-            questions_panel("CRAVING TO VAPE", CRAVINGS_QUESTIONS, "🌊", "crav")
-        elif st.session_state.stage == "in_answer":
-            cravings_answer_panel()
-        else:
-            questions_panel("CRAVING TO VAPE", CRAVINGS_QUESTIONS, "🌊", "crav")
-
-    elif key in ("stress", "social"):
-        if st.session_state.stage == "in_category":
-            questions_panel("STRESS TURNING TO VAPING / SOCIAL VAPING SITUATIONS", STRESS_OR_SOCIAL_QUESTIONS, "⚡", "social")
-        elif st.session_state.stage == "in_answer":
-            stress_or_social_answer_panel()
-        else:
-            questions_panel("STRESS TURNING TO VAPING / SOCIAL VAPING SITUATIONS", STRESS_OR_SOCIAL_QUESTIONS, "⚡", "social")
-
-    else:
-        label = _header_for_key(key)
-        top_header()
-        gradient_title("🧭", label, "Content coming soon. Pick another topic or go back.")
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-        footer_nav("comingsoon")
 
 def app_flow():
     stage = st.session_state.stage
